@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Subha Choghadiya</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 12px; width: 340px; font-size: 14px; }
+    h2, h3 { text-align: center; margin: 10px 0; }
+    select { width: 100%; padding: 6px; margin: 8px 0; font-size: 14px; }
+    #city-note { font-size: 12px; color: #666; text-align: center; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Subha Choghadiya Muhurta</h2>
+  <label for="city-select">Your City:</label>
+  <select id="city-select">
+    <option value="cleveland">Cleveland, Ohio, USA</option>
+    <option value="fairviewpark">Fairview Park, Ohio, USA</option>
+    <option value="solon">Solon, Ohio, USA</option>
+    <option value="sanfrancisco">San Francisco, CA, USA</option>
+    <option value="chicago">Chicago, IL, USA</option>
+    <option value="ottawa">Ottawa, Canada</option>
+    <option value="vancouver">Vancouver, Canada</option>
+    <option value="osijek">Osijek, Croatia</option>
+    <option value="zagreb">Zagreb, Croatia</option>
+    <option value="bengaluru">Bengaluru, India</option>
+    <option value="hyderabad">Hyderabad, India</option>
+  </select>
+  <p id="city-note">Timings update for selected city (uses real sunrise/sunset)</p>
+  <div id="content">Loading timings...</div>
+  <script src="popup.js"></script>
+</body>
+</html>

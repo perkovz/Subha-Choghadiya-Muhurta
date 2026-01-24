@@ -1,0 +1,8 @@
+.good { background-color: #e6ffe6; color: #006400; font-weight: bold; }
+.bad  { background-color: #ffe6e6; color: #8b0000; }
+.rahu { background-color: #ffcccc; color: #b22222; font-weight: bold; padding: 8px; border-radius: 4px; text-align: center; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+td, th { padding: 8px; border: 1px solid #ccc; text-align: left; }
+tr.active-now {
+  font-weight: bold;
+}
