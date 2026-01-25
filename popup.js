@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const auspicious = new Set(['Amrit', 'Shubh', 'Labh', 'Chal']);
 
   // Inauspicious slots (0-based)
-  const rahuSlots     = [7, 1, 6, 4, 5, 3, 2]; // Your custom
+  const rahuSlots     = [7, 1, 6, 4, 5, 3, 2];
   const kaalVelaSlots = [0, 0, 0, 0, 0, 0, 0];
   const vaarVelaSlots = [5, 5, 5, 5, 5, 5, 5];
 
@@ -28,43 +28,84 @@ document.addEventListener('DOMContentLoaded', async () => {
   const kaalVelaIndex = kaalVelaSlots[weekday];
   const vaarVelaIndex = vaarVelaSlots[weekday];
 
-  // Cities
-  const cities = {
-    cleveland:     { lat: 41.5055, lng: -81.6813, name: 'Cleveland, Ohio, USA',     ianaTimezone: 'America/New_York' },
-    fairviewpark:  { lat: 41.4414, lng: -81.8643, name: 'Fairview Park, Ohio, USA', ianaTimezone: 'America/New_York' },
-    solon:         { lat: 41.3873, lng: -81.4387, name: 'Solon, Ohio, USA',         ianaTimezone: 'America/New_York' },
-    sanfrancisco:  { lat: 37.7740, lng: -122.4313, name: 'San Francisco, CA, USA', ianaTimezone: 'America/Los_Angeles' },
-    chicago:       { lat: 41.8818, lng: -87.6232, name: 'Chicago, IL, USA',         ianaTimezone: 'America/Chicago' },
-    ottawa:        { lat: 45.4247, lng: -75.6950, name: 'Ottawa, Canada',           ianaTimezone: 'America/Toronto' },
-    vancouver:     { lat: 49.2463, lng: -123.1162, name: 'Vancouver, Canada',       ianaTimezone: 'America/Vancouver' },
-    osijek:        { lat: 45.5511, lng: 18.6939, name: 'Osijek, Croatia',           ianaTimezone: 'Europe/Zagreb' },
-    zagreb:        { lat: 45.8154, lng: 15.9666, name: 'Zagreb, Croatia',           ianaTimezone: 'Europe/Zagreb' },
-    bengaluru:     { lat: 12.9716, lng: 77.5946, name: 'Bengaluru, India',          ianaTimezone: 'Asia/Kolkata' },
-    hyderabad:     { lat: 17.3871, lng: 78.4917, name: 'Hyderabad, India',          ianaTimezone: 'Asia/Kolkata' }
-  };
+  // Default fallback (Cleveland)
+  let lat = 41.5055;
+  let lng = -81.6813;
+  let cityName = 'Cleveland, Ohio, USA';
+  let ianaTimezone = 'America/New_York';
 
-  // Load saved city
-  let selectedCity = 'cleveland';
+  // Try to load saved location
   try {
-    const result = await chrome.storage.local.get('selectedCity');
-    if (result.selectedCity && cities[result.selectedCity]) {
-      selectedCity = result.selectedCity;
+    const saved = await chrome.storage.local.get([
+      'savedLat', 'savedLng', 'savedCityName', 'savedTimezone'
+    ]);
+    if (saved.savedLat && saved.savedLng) {
+      lat          = saved.savedLat;
+      lng          = saved.savedLng;
+      cityName     = saved.savedCityName || 'Your Location';
+      ianaTimezone = saved.savedTimezone || 'America/New_York';
+      console.log(`Loaded saved location: ${cityName} (${lat}, ${lng})`);
     }
-  } catch (e) {
-    console.warn('Storage error, using default');
+  } catch (err) {
+    console.warn('Could not load saved location:', err);
   }
 
-  document.getElementById('city-select').value = selectedCity;
+  // If no saved location → request geolocation once
+  if (lat === 41.5055 && lng === -81.6813) {
+    if (navigator.geolocation) {
+      document.getElementById('content').innerHTML = '<div class="loading">Detecting location…</div>';
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 0
+          });
+        });
 
-  document.getElementById('city-select').addEventListener('change', async (e) => {
-    selectedCity = e.target.value;
-    await chrome.storage.local.set({ selectedCity });
-    location.reload();
-  });
+        lat = position.coords.latitude;
+        lng = position.coords.longitude;
 
-  const { lat, lng, name: cityName, ianaTimezone } = cities[selectedCity];
+        // Reverse geocode with BigDataCloud
+        try {
+          const geoRes = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+          );
+          const geoData = await geoRes.json();
 
-  // Current time in city's timezone
+          cityName = geoData.city ||
+                     geoData.locality ||
+                     geoData.principalSubdivision ||
+                     'Your Location';
+
+          if (geoData.countryCode === 'IN') ianaTimezone = 'Asia/Kolkata';
+          else if (geoData.countryCode === 'HR') ianaTimezone = 'Europe/Zagreb';
+          else if (geoData.countryCode === 'US' && geoData.principalSubdivision === 'California') ianaTimezone = 'America/Los_Angeles';
+          else if (geoData.countryCode === 'US' && geoData.principalSubdivision === 'Illinois') ianaTimezone = 'America/Chicago';
+
+          // Save it
+          await chrome.storage.local.set({
+            savedLat: lat,
+            savedLng: lng,
+            savedCityName: cityName,
+            savedTimezone: ianaTimezone
+          });
+        } catch (geoErr) {
+          console.warn('Reverse geocoding failed:', geoErr);
+          cityName = 'Your Location';
+        }
+      } catch (geoErr) {
+        console.warn('Geolocation denied or failed:', geoErr);
+        document.getElementById('content').innerHTML += 
+          '<p class="error">Location access denied — using default (Cleveland).</p>';
+      }
+    } else {
+      document.getElementById('content').innerHTML += 
+        '<p class="error">Geolocation not supported — using default (Cleveland).</p>';
+    }
+  }
+
+  // Current time in detected/saved timezone
   const nowInCity = new Date(new Intl.DateTimeFormat('en-US', {
     timeZone: ianaTimezone,
     year: 'numeric',
@@ -77,7 +118,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }).format(Date.now()));
 
   const nowMsInCity = nowInCity.getTime();
-  console.log(`Current time in ${cityName} (${ianaTimezone}): ${nowInCity.toLocaleString('en-US', { timeZone: ianaTimezone })}`);
 
   // Sunrise/sunset (UTC)
   let sunriseUTC, sunsetUTC;
@@ -89,9 +129,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (data.status === 'OK') {
       sunriseUTC = new Date(data.results.sunrise);
       sunsetUTC  = new Date(data.results.sunset);
-
-      console.log("API sunrise UTC:", sunriseUTC.toUTCString());
-      console.log("API sunset UTC:", sunsetUTC.toUTCString());
     } else {
       throw new Error('API status not OK');
     }
@@ -111,13 +148,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const nightDurationMs = nextSunriseTime - sunsetTime;
   const nightMs = nightDurationMs / 8;
 
-  console.log("Day duration ms:", dayDurationMs, "per slot:", dayMs);
-  console.log("Night duration ms:", nightDurationMs, "per slot:", nightMs);
-
   const intDayMs   = Math.round(dayMs);
   const intNightMs = Math.round(nightMs);
 
-  // Abhijit (UTC ms)
+  // Abhijit Muhurat
   const middayMs = sunriseTime + (sunsetTime - sunriseTime) / 2;
   const abhijitStart = new Date(middayMs - 24 * 60 * 1000);
   const abhijitEnd   = new Date(middayMs + 24 * 60 * 1000);
@@ -125,14 +159,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Build content
   let contentHtml = `<p><strong>${today.toLocaleDateString('en-US', { timeZone: ianaTimezone })}</strong> - ${cityName}</p>`;
 
-  // Current time in city
-  contentHtml += `<p style="font-size: 12px; text-align: center; color: #555;">
-    Current time in ${cityName}: ${nowInCity.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
+  contentHtml += `<p style="font-size: 13px; text-align: center; color: #555; margin-bottom: 16px;">
+    Current time: ${nowInCity.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
   </p>`;
 
-  // Abhijit
   contentHtml += `
-    <div style="background-color: #e6ffe6; padding: 10px; border-radius: 6px; margin: 10px 0; text-align: center; border: 1px solid #b3ffb3;">
+    <div style="background: linear-gradient(135deg, #e6ffe6, #d4f4d4); padding: 12px; border-radius: 12px; margin: 12px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,100,0,0.1);">
       <strong>Abhijit Muhurat (Auspicious)</strong><br>
       ${abhijitStart.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })} to 
       ${abhijitEnd.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -157,10 +189,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const isActive = (nowMs >= cur - 5000) && (nowMs < cur + duration + 5000);
 
-      if (title.includes('Nighttime')) {
-        console.log(`${title} slot ${index}: ${s.toLocaleTimeString('en-US', { timeZone: ianaTimezone })} to ${e.toLocaleTimeString('en-US', { timeZone: ianaTimezone })} | isActive: ${isActive}`);
-      }
-
       const cls = auspicious.has(type) ? 'good' : 'bad';
 
       let typeDisplay = type;
@@ -178,7 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <td style="position: relative;">
           ${s.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })} to 
           ${e.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
-          <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 1.2em; color: #666;">${activeIcon}</span>
+          <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 1.3em; color: #f39c12;">${activeIcon}</span>
         </td>
       </tr>`;
       cur += duration;
@@ -202,4 +230,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     ${rahuEnd.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}</p>`;
 
   document.getElementById('content').innerHTML = contentHtml;
+
+  // Attach reload button listener
+  const reloadBtn = document.getElementById('reload-location');
+  if (reloadBtn) {
+    reloadBtn.addEventListener('click', () => {
+      console.log('Reload location button clicked — clearing saved location');
+      chrome.storage.local.remove([
+        'savedLat', 'savedLng', 'savedCityName', 'savedTimezone'
+      ], () => {
+        location.reload();
+      });
+    });
+  } else {
+    console.warn('Reload button not found in DOM');
+  }
 });

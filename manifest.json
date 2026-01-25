@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Subha Choghadiya Muhurta",
-  "description": "Shows today's Shubh Choghadiya Muhurta and Rahu Kaal. Pick your city!",
+  "description": "Shows today's Shubh Choghadiya Muhurta with Abhijit Muhurta, Rahu Kaal, Kaal Vela and Vaar Vela based on your location.",
   "version": "1.0",
   "icons": {
     "16": "icons/icon16.png",
@@ -15,5 +15,8 @@
   "permissions": [
     "storage",
     "geolocation"
+  ],
+  "host_permissions": [
+    "https://api.sunrise-sunset.io/*"
   ]
 }
