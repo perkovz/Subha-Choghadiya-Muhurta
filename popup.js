@@ -157,14 +157,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const abhijitEnd   = new Date(middayMs + 24 * 60 * 1000);
 
   // Build content
-  let contentHtml = `<p><strong>${today.toLocaleDateString('en-US', { timeZone: ianaTimezone })}</strong> - ${cityName}</p>`;
-
-  contentHtml += `<p style="font-size: 13px; text-align: center; color: #555; margin-bottom: 16px;">
-    Current time: ${nowInCity.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
+  let contentHtml = `
+  <p><span>${today.toLocaleDateString('en-US', { timeZone: ianaTimezone })}</span>, 
+  <span>${cityName}</span>,
+  <span>${nowInCity.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}</span>
   </p>`;
 
   contentHtml += `
-    <div style="background: linear-gradient(135deg, #e6ffe6, #d4f4d4); padding: 12px; border-radius: 12px; margin: 12px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,100,0,0.1);">
+    <div class="abhijit-box">
       <strong>Abhijit Muhurat (Auspicious)</strong><br>
       ${abhijitStart.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })} to 
       ${abhijitEnd.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -225,9 +225,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const rahuStart   = new Date(rahuStartMs);
   const rahuEnd     = new Date(rahuEndMs);
 
-  contentHtml += `<h3>Rahu Kaal (Avoid)</h3>
-    <p class="rahu">${rahuStart.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })} to 
-    ${rahuEnd.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}</p>`;
+  contentHtml += `<div class="rahu-box"><strong>Rahu Kaal (Avoid)</strong><br>
+    <span class="rahu">${rahuStart.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })} to 
+    ${rahuEnd.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}</span></div>`;
 
   document.getElementById('content').innerHTML = contentHtml;
 
