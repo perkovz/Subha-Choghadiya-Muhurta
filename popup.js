@@ -191,10 +191,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const cls = auspicious.has(type) ? 'good' : 'bad';
 
-      let typeDisplay = type;
+      let prefix = '';
       if (warningIndices.includes(index)) {
-        typeDisplay = '⚠️ ' + type;
+        if (title.includes('Daytime') && index === rahuIndex) {
+          prefix = '👹 ';
+        } else {
+          prefix = '⚠️ ';
+        }
       }
+      let typeDisplay = prefix + type;
 
       const activeIcon = isActive ? ' ⏳' : '';
 
