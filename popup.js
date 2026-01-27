@@ -15,7 +15,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   ];
 
   const daySeq = daySequences[weekday];
-  const nightSeq = [...daySeq.slice(5), ...daySeq.slice(0, 5)];
+
+  // Nighttime cycle and start indices (updated to match Drik Panchang)
+  const nightCycle = ['Labh', 'Udveg', 'Shubh', 'Amrit', 'Chal', 'Rog', 'Kaal'];
+  const nightStartIndices = [2, 4, 6, 1, 3, 5, 0]; // Sun:2 (Shubh), Mon:4 (Chal), Tue:6 (Kaal), Wed:1 (Udveg), Thu:3 (Amrit), Fri:5 (Rog), Sat:0 (Labh)
+
+  const startIndex = nightStartIndices[weekday];
+  const nightSeq = [];
+  for (let i = 0; i < 8; i++) {
+    nightSeq.push(nightCycle[(startIndex + i) % 7]);
+  }
 
   const auspicious = new Set(['Amrit', 'Shubh', 'Labh', 'Chal']);
 
@@ -230,7 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const rahuStart   = new Date(rahuStartMs);
   const rahuEnd     = new Date(rahuEndMs);
 
-  contentHtml += `<div class="rahu-box"><strong>Rahu Kaal (Avoid)</strong><br>
+  contentHtml += `<div class="rahu-box"><strong>👹 Rahu Kaal (Avoid)</strong><br>
     <span class="rahu">${rahuStart.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })} to 
     ${rahuEnd.toLocaleTimeString('en-US', { timeZone: ianaTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}</span></div>`;
 
