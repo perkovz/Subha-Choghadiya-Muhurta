@@ -30,8 +30,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Inauspicious slots (0-based)
   const rahuSlots     = [7, 1, 6, 4, 5, 3, 2];
-  const kaalVelaSlots = [0, 0, 0, 0, 0, 0, 0];
-  const vaarVelaSlots = [5, 5, 5, 5, 5, 5, 5];
+  const kaalVelaSlots = [4, 1, 5, 2, 6, 3, 0];
+  const vaarVelaSlots = [3, 6, 1, 4, 7, 2, 5];
 
   const rahuIndex     = rahuSlots[weekday];
   const kaalVelaIndex = kaalVelaSlots[weekday];
@@ -187,7 +187,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (title.includes('Daytime')) {
       warningIndices = [rahuIndex, kaalVelaIndex, vaarVelaIndex];
     } else if (title.includes('Nighttime')) {
-      warningIndices = [0, 7];
+      seq.forEach((type, index) => {
+        if (type === 'Labh') warningIndices.push(index);
+      });
     }
 
     const nowMs = nowMsInCity;
