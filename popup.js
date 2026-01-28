@@ -142,8 +142,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const icon = isActive ? '⏳ ' : '';
 
       html += `<tr class="${rowClass}">
-        <td>${icon}${prefix}${type}</td>
-        <td>${new Date(startMs).toLocaleTimeString('en-US', {timeZone: ianaTimezone, hour:'numeric', minute:'2-digit', hour12:true})} – ${new Date(endMs).toLocaleTimeString('en-US', {timeZone: ianaTimezone, hour:'numeric', minute:'2-digit', hour12:true})}</td>
+        <td>${prefix}${type}</td>
+        <td><span class="active-period-time">${new Date(startMs).toLocaleTimeString('en-US', {timeZone: ianaTimezone, hour:'numeric', minute:'2-digit', hour12:true})} – ${new Date(endMs).toLocaleTimeString('en-US', {timeZone: ianaTimezone, hour:'numeric', minute:'2-digit', hour12:true})}</span> <span class="active-period-icon">${icon}</span></td>
       </tr>`;
     });
 

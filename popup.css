@@ -125,3 +125,11 @@ tr.bad {
 tr.active-now {
   font-weight: bold !important;
 }
+
+.active-period-time {
+  
+}
+
+.active-period-icon {
+  float: right;
+}
