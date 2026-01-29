@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function makeTable(seq, starts, durationMs, title) {
     let html = `<h2>${title}</h2><table>`;
-    const warningIndices = title.includes('Daytime')
+    const warningIndices = title.includes('Day')
       ? [rahuIndex, kaalVelaIndex, vaarVelaIndex]
       : seq.reduce((acc, t, i) => { if (t === 'Labh') acc.push(i); return acc; }, []);
 
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       let prefix = '';
       if (warningIndices.includes(idx)) {
-        prefix = (title.includes('Daytime') && idx === rahuIndex) ? '👹 ' : '⚠️ ';
+        prefix = (title.includes('Day') && idx === rahuIndex) ? '👹 ' : '⚠️ ';
       }
 
       const icon = isActive ? '⏳ ' : '';
@@ -173,10 +173,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     <div class="tables-container">
       <div class="table-wrapper">
-        ${makeTable(daySeq, dayStarts, intDayMs, 'Daytime Choghadiya')}
+        ${makeTable(daySeq, dayStarts, intDayMs, 'Day Choghadiya')}
       </div>
       <div class="table-wrapper">
-        ${makeTable(nightSeq, nightStarts, intNightMs, 'Nighttime Choghadiya')}
+        ${makeTable(nightSeq, nightStarts, intNightMs, 'Night Choghadiya')}
       </div>
     </div>
   `;
