@@ -272,237 +272,195 @@ const cityDatabase = [
   { name: "São Paulo, Brazil", lat: -23.5505, lng: -46.6333, tz: "America/Sao_Paulo" }
 ];
 
-// === Main logic ===
+// MAIN LOGIC
 document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.getElementById('city-search');
-  const resultsDiv  = document.getElementById('search-results');
-  const contentDiv  = document.getElementById('content');
+  const searchInput  = document.getElementById('city-search');
+  const resultsDiv   = document.getElementById('search-results');
+  const contentDiv   = document.getElementById('content');
 
   let currentLat       = 41.5055;
   let currentLng       = -81.6813;
   let currentCityName  = 'Cleveland, Ohio, USA';
   let currentTimezone  = 'America/New_York';
 
-  // Load saved location on start
-  chrome.storage.local.get(['savedLat','savedLng','savedCityName','savedTimezone'], (saved) => {
-    if (saved.savedLat && saved.savedLng) {
-      currentLat      = saved.savedLat;
-      currentLng      = saved.savedLng;
-      currentCityName = saved.savedCityName || 'Your Location';
-      currentTimezone = saved.savedTimezone || 'America/New_York';
-    }
-    renderChoghadiya();
-  });
+  let isRendering = false;
 
-  // Simple prefix search (no library)
-  function findCities(query) {
-    if (query.length < 2) return [];
-    const lower = query.toLowerCase();
-    return cityDatabase
-      .filter(c => c.name.toLowerCase().startsWith(lower))
-      .slice(0, 10);
+  // ──────────────────────────────────────────────
+  // Constants & lookup tables (top-level)
+  // ──────────────────────────────────────────────
+  const daySequences = [
+    ['Udveg', 'Chal', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg'],
+    ['Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Chal', 'Labh', 'Amrit'],
+    ['Rog', 'Udveg', 'Chal', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog'],
+    ['Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Chal', 'Labh'],
+    ['Shubh', 'Rog', 'Udveg', 'Chal', 'Labh', 'Amrit', 'Kaal', 'Shubh'],
+    ['Chal', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Chal'],
+    ['Kaal', 'Shubh', 'Rog', 'Udveg', 'Chal', 'Labh', 'Amrit', 'Kaal']
+  ];
+
+  const nightCycle = ['Labh', 'Udveg', 'Shubh', 'Amrit', 'Chal', 'Rog', 'Kaal'];
+  const nightStartIndices = [2, 4, 6, 1, 3, 5, 0];
+
+  const auspicious = new Set(['Amrit', 'Shubh', 'Labh', 'Chal']);
+
+  const rahuSlots     = [7, 1, 6, 4, 5, 3, 2];
+  const kaalVelaSlots = [4, 1, 5, 2, 6, 3, 0];
+  const vaarVelaSlots = [3, 6, 1, 4, 7, 2, 5];
+
+  // ──────────────────────────────────────────────
+  // Helper functions
+  // ──────────────────────────────────────────────
+  function formatTime(ms, tz = currentTimezone) {
+    return new Date(ms).toLocaleTimeString('en-US', {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   }
 
-  // Show results below input
-  searchInput.addEventListener('input', () => {
-    const query = searchInput.value.trim();
-    resultsDiv.innerHTML = '';
+  function getDaySeq(weekday) {
+    return daySequences[weekday];
+  }
 
-    if (query.length < 2) return;
+  function getNightSeq(weekday) {
+    const startIdx = nightStartIndices[weekday];
+    return Array.from({ length: 8 }, (_, i) => nightCycle[(startIdx + i) % 7]);
+  }
 
-    const matches = findCities(query);
-    if (matches.length === 0) {
-      resultsDiv.innerHTML = '<div class="no-results">No cities found</div>';
-      return;
+  function makeTable(seq, starts, slotMs, title, nowMs, rahuIdx, kaalIdx, vaarIdx) {
+    if (!Array.isArray(seq) || !Array.isArray(starts)) {
+      return `<h2>${title}</h2><p class="error">Sequence data unavailable</p>`;
     }
 
-    const ul = document.createElement('ul');
-    matches.forEach(city => {
-      const li = document.createElement('li');
-      li.textContent = city.name;
-      li.addEventListener('click', () => {
-        currentLat      = city.lat;
-        currentLng      = city.lng;
-        currentCityName = city.name;
-        currentTimezone = city.tz;
+    let html = `<h2>${title}</h2><table>`;
 
-        // Save immediately
-        chrome.storage.local.set({
-          savedLat: currentLat,
-          savedLng: currentLng,
-          savedCityName: currentCityName,
-          savedTimezone: currentTimezone
-        });
+    const warningIndices = title.includes('Day')
+      ? [rahuIdx, kaalIdx, vaarIdx]
+      : seq.reduce((acc, t, i) => { if (t === 'Labh') acc.push(i); return acc; }, []);
 
-        searchInput.value = '';
-        resultsDiv.innerHTML = '';
-        renderChoghadiya();
-      });
-      ul.appendChild(li);
+    seq.forEach((type, idx) => {
+      const startMs = starts[idx];
+      const endMs   = startMs + Math.round(slotMs);
+
+      const isActive = nowMs >= startMs && nowMs < endMs;
+
+      const cls = auspicious.has(type) ? 'good' : 'bad';
+      const rowClass = isActive ? `${cls} active-now` : cls;
+
+      let prefix = '';
+      if (warningIndices.includes(idx)) {
+        prefix = (title.includes('Day') && idx === rahuIdx) ? '👹 ' : '⚠️ ';
+      }
+
+      const icon = isActive ? '⏳ ' : '';
+
+      html += `<tr class="${rowClass}">
+        <td>${prefix}${type}</td>
+        <td><span class="active-period-time">${formatTime(startMs)} – ${formatTime(endMs)}</span> <span class="active-period-icon">${icon}</span></td>
+      </tr>`;
     });
-    resultsDiv.appendChild(ul);
-  });
 
-  // Hide results when clicking outside
-  document.addEventListener('click', e => {
-    if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
-      resultsDiv.innerHTML = '';
-    }
-  });
+    html += '</table>';
+    return html;
+  }
 
-  // Reload button - clear saved location and fallback to geolocation / default
-  document.getElementById('reload-location').addEventListener('click', () => {
-    chrome.storage.local.remove(['savedLat','savedLng','savedCityName','savedTimezone'], () => {
-      location.reload();
-    });
-  });
+  async function fetchSunriseSunset(dateStr) {
+    try {
+      const res = await fetch(`https://api.sunrise-sunset.org/json?lat=${currentLat}&lng=${currentLng}&date=${dateStr}&formatted=0`);
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
 
-  // Core Choghadiya rendering function
+      if (data.status === 'OK' && data.results?.sunrise && data.results?.sunset) {
+        return {
+          sunriseTime: new Date(data.results.sunrise).getTime(),
+          sunsetTime: new Date(data.results.sunset).getTime()
+        };
+      }
+    } catch {}
+
+    // Fallback
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return {
+      sunriseTime: Date.UTC(y, m-1, d, 6, 0, 0),
+      sunsetTime: Date.UTC(y, m-1, d, 18, 0, 0)
+    };
+  }
+
+  // ──────────────────────────────────────────────
+  // Main render function
+  // ──────────────────────────────────────────────
   function renderChoghadiya() {
+    if (isRendering) return;
+    isRendering = true;
+
     contentDiv.innerHTML = '<div class="loading">Calculating Muhurtas…</div>';
 
     const nowMs = Date.now();
 
     const tzFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: currentTimezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: 'numeric', minute: 'numeric', second: 'numeric',
       hour12: false
     });
 
     const parts = tzFormatter.formatToParts(nowMs);
-    const year  = parts.find(p => p.type === 'year').value;
-    const month = parts.find(p => p.type === 'month').value;
-    const day   = parts.find(p => p.type === 'day').value;
+    const year  = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day   = parts.find(p => p.type === 'day')?.value;
+
+    if (!year || !month || !day) {
+      contentDiv.innerHTML = '<p class="error">Cannot determine date.</p>';
+      isRendering = false;
+      return;
+    }
 
     const dateStr = `${year}-${month}-${day}`;
 
-    // Local date in target timezone → used to determine weekday correctly
     const noonInTz = new Date(`${dateStr}T12:00:00`);
-    const formatterNoon = new Intl.DateTimeFormat('en-US', {
+    const weekdayName = new Intl.DateTimeFormat('en-US', {
       timeZone: currentTimezone,
       weekday: 'long'
-    });
-    const weekdayName = formatterNoon.format(noonInTz);
-    const weekdayMap = {
-      'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
-      'Thursday': 4, 'Friday': 5, 'Saturday': 6
-    };
+    }).format(noonInTz);
+
+    const weekdayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
     const weekday = weekdayMap[weekdayName];
 
-    const daySequences = [
-      ['Udveg', 'Chal', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg'],
-      ['Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Chal', 'Labh', 'Amrit'],
-      ['Rog', 'Udveg', 'Chal', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog'],
-      ['Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Chal', 'Labh'],
-      ['Shubh', 'Rog', 'Udveg', 'Chal', 'Labh', 'Amrit', 'Kaal', 'Shubh'],
-      ['Chal', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Chal'],
-      ['Kaal', 'Shubh', 'Rog', 'Udveg', 'Chal', 'Labh', 'Amrit', 'Kaal']
-    ];
+    if (weekday === undefined) {
+      contentDiv.innerHTML = '<p class="error">Cannot determine weekday.</p>';
+      isRendering = false;
+      return;
+    }
 
-    const nightCycle = ['Labh', 'Udveg', 'Shubh', 'Amrit', 'Chal', 'Rog', 'Kaal'];
-    const nightStartIndices = [2, 4, 6, 1, 3, 5, 0];
-    const nightSeq = Array.from({length: 8}, (_, i) => nightCycle[(nightStartIndices[weekday] + i) % 7]);
-
-    const auspicious = new Set(['Amrit', 'Shubh', 'Labh', 'Chal']);
-
-    const rahuSlots     = [7, 1, 6, 4, 5, 3, 2];
-    const kaalVelaSlots = [4, 1, 5, 2, 6, 3, 0];
-    const vaarVelaSlots = [3, 6, 1, 4, 7, 2, 5];
-
-    const rahuIndex     = rahuSlots[weekday];
-    const kaalVelaIndex = kaalVelaSlots[weekday];
-    const vaarVelaIndex = vaarVelaSlots[weekday];
-
-    fetch(`https://api.sunrise-sunset.org/json?lat=${currentLat}&lng=${currentLng}&date=${dateStr}&formatted=0`)
-      .then(r => r.json())
-      .then(data => {
-        let sunriseUTC, sunsetUTC;
-        if (data.status === 'OK') {
-          sunriseUTC = new Date(data.results.sunrise);
-          sunsetUTC  = new Date(data.results.sunset);
-        } else {
-          sunriseUTC = new Date(Date.UTC(year, month - 1, day, 12, 30, 0));
-          sunsetUTC  = new Date(Date.UTC(year, month - 1, day, 22, 30, 0));
-        }
-
-        const sunriseTime = sunriseUTC.getTime();
-        const sunsetTime  = sunsetUTC.getTime();
-
+    fetchSunriseSunset(dateStr)
+      .then(({ sunriseTime, sunsetTime }) => {
         const dayDurationMs   = sunsetTime - sunriseTime;
         const nightDurationMs = (sunriseTime + 86400000) - sunsetTime;
 
-        const dayMsRaw   = dayDurationMs / 8;
-        const nightMsRaw = nightDurationMs / 8;
+        const daySlotMs   = dayDurationMs   / 8;
+        const nightSlotMs = nightDurationMs / 8;
 
-        const intDayMs   = Math.round(dayMsRaw);
-        const intNightMs = Math.round(nightMsRaw);
+        const dayStarts   = Array.from({ length: 8 }, (_, i) => sunriseTime + Math.round(daySlotMs * i));
+        const nightStarts = Array.from({ length: 8 }, (_, i) => sunsetTime  + Math.round(nightSlotMs * i));
 
-        const dayStarts   = new Array(8).fill(0).map((_, i) => sunriseTime + Math.round(dayMsRaw * i));
-        const nightStarts = new Array(8).fill(0).map((_, i) => sunsetTime + Math.round(nightMsRaw * i));
+        const middayMs     = sunriseTime + dayDurationMs / 2;
+        const abhijitStart = middayMs - 24 * 60 * 1000;
+        const abhijitEnd   = middayMs + 24 * 60 * 1000;
 
-        const middayMs     = sunriseTime + (sunsetTime - sunriseTime) / 2;
-        const abhijitStart = new Date(middayMs - 24 * 60 * 1000);
-        const abhijitEnd   = new Date(middayMs + 24 * 60 * 1000);
-
-        const rahuStartMs = sunriseTime + Math.round(dayMsRaw * rahuIndex);
-        const rahuEndMs   = rahuStartMs + Math.round(dayMsRaw);
-
-        function formatTime(ms) {
-          return new Date(ms).toLocaleTimeString('en-US', {
-            timeZone: currentTimezone,
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          });
-        }
-
-        function makeTable(seq, starts, durationMs, title) {
-          let html = `<h2>${title}</h2><table>`;
-          const warningIndices = title.includes('Day')
-            ? [rahuIndex, kaalVelaIndex, vaarVelaIndex]
-            : seq.reduce((acc, t, i) => { if (t === 'Labh') acc.push(i); return acc; }, []);
-
-          seq.forEach((type, idx) => {
-            const startMs = starts[idx];
-            const endMs   = startMs + durationMs;
-
-            const isActive = nowMs >= startMs && nowMs < endMs;
-
-            const cls = auspicious.has(type) ? 'good' : 'bad';
-            const rowClass = isActive ? `${cls} active-now` : cls;
-
-            let prefix = '';
-            if (warningIndices.includes(idx)) {
-              prefix = (title.includes('Day') && idx === rahuIndex) ? '👹 ' : '⚠️ ';
-            }
-
-            const icon = isActive ? '⏳ ' : '';
-
-            html += `<tr class="${rowClass}">
-              <td>${prefix}${type}</td>
-              <td><span class="active-period-time">${formatTime(startMs)} – ${formatTime(endMs)}</span> <span class="active-period-icon">${icon}</span></td>
-            </tr>`;
-          });
-
-          html += '</table>';
-          return html;
-        }
+        const rahuStartMs = sunriseTime + Math.round(daySlotMs * rahuSlots[weekday]);
+        const rahuEndMs   = rahuStartMs + Math.round(daySlotMs);
 
         const html = `
-          <div class="mb-1">
-            <span>${new Date(nowMs).toLocaleDateString('en-US', {timeZone: currentTimezone})}, ${currentCityName}, </span>
+          <div class="current-location">
+            <span>${new Date(nowMs).toLocaleDateString('en-US', { timeZone: currentTimezone })}, ${currentCityName}, </span>
             <span>${formatTime(nowMs)}</span>
           </div>
 
           <div class="flexbox">
             <div class="abhijit-box">
               Abhijit Muhurat (Auspicious)<br>
-              ${formatTime(abhijitStart.getTime())} – ${formatTime(abhijitEnd.getTime())}
+              ${formatTime(abhijitStart)} – ${formatTime(abhijitEnd)}
             </div>
 
             <div class="rahu-box">
@@ -513,10 +471,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
           <div class="tables-container">
             <div class="table-wrapper">
-              ${makeTable(daySeq, dayStarts, intDayMs, 'Day Choghadiya')}
+              ${makeTable(getDaySeq(weekday), dayStarts, daySlotMs, 'Day Choghadiya', nowMs, rahuSlots[weekday], kaalVelaSlots[weekday], vaarVelaSlots[weekday])}
             </div>
             <div class="table-wrapper">
-              ${makeTable(nightSeq, nightStarts, intNightMs, 'Night Choghadiya')}
+              ${makeTable(getNightSeq(weekday), nightStarts, nightSlotMs, 'Night Choghadiya', nowMs)}
             </div>
           </div>
         `;
@@ -525,6 +483,76 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(() => {
         contentDiv.innerHTML = '<p class="error">Failed to load sunrise/sunset data.</p>';
+      })
+      .finally(() => {
+        isRendering = false;
       });
   }
+
+  // ──────────────────────────────────────────────
+  // Event listeners & init
+  // ──────────────────────────────────────────────
+
+  chrome.storage.local.get(['savedLat','savedLng','savedCityName','savedTimezone'], (saved) => {
+    if (saved.savedLat && saved.savedLng) {
+      currentLat      = Number(saved.savedLat);
+      currentLng      = Number(saved.savedLng);
+      currentCityName = saved.savedCityName || 'Your Location';
+      currentTimezone = saved.savedTimezone || 'America/New_York';
+    }
+    renderChoghadiya();
+  });
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim();
+    resultsDiv.innerHTML = '';
+
+    if (query.length < 2) return;
+
+    const matches = cityDatabase
+      .filter(c => c.name.toLowerCase().startsWith(query.toLowerCase()))
+      .slice(0, 10);
+
+    if (matches.length === 0) {
+      resultsDiv.innerHTML = '<div class="no-results">No cities found</div>';
+      return;
+    }
+
+    const ul = document.createElement('ul');
+    matches.forEach(city => {
+      const li = document.createElement('li');
+      li.textContent = city.name;
+      li.onclick = () => {
+        currentLat      = city.lat;
+        currentLng      = city.lng;
+        currentCityName = city.name;
+        currentTimezone = city.tz;
+
+        chrome.storage.local.set({
+          savedLat: currentLat,
+          savedLng: currentLng,
+          savedCityName: currentCityName,
+          savedTimezone: currentTimezone
+        });
+
+        searchInput.value = '';
+        resultsDiv.innerHTML = '';
+        renderChoghadiya();
+      };
+      ul.appendChild(li);
+    });
+    resultsDiv.appendChild(ul);
+  });
+
+  document.addEventListener('click', e => {
+    if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+      resultsDiv.innerHTML = '';
+    }
+  });
+
+  document.getElementById('reload-location')?.addEventListener('click', () => {
+    chrome.storage.local.remove(['savedLat','savedLng','savedCityName','savedTimezone'], () => {
+      location.reload();
+    });
+  });
 });
