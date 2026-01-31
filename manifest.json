@@ -13,8 +13,7 @@
     "default_icon": "icons/icon128.png"
   },
   "permissions": [
-    "storage",
-    "geolocation"
+    "storage"
   ],
   "host_permissions": [
     "https://api.sunrise-sunset.io/*"
