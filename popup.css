@@ -184,6 +184,7 @@ tr.active-now {
 
 .active-period-icon {
   float: right;
+  padding-right: 12px;
 }
 
 /* ==========================================================================
