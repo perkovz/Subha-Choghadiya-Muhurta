@@ -354,7 +354,7 @@ const cityDatabase = [
   { name: "Escondido, USA", lat: 33.1192, lng: -117.0864, tz: "America/Los_Angeles" },
   { name: "Eugene, USA", lat: 44.0521, lng: -123.0868, tz: "America/Los_Angeles" },
   { name: "Fairfield, USA", lat: 38.2494, lng: -122.0399, tz: "America/Los_Angeles" },
-  { name: "Fairview Park, Ohio, USA", lat: 41.4414, lng: -81.8643, tz: "America/New_York" },
+  { name: "Fairview Park, OH, USA", lat: 41.4414, lng: -81.8643, tz: "America/New_York" },
   { name: "Fargo, USA", lat: 46.8772, lng: -96.7898, tz: "America/Chicago" },
   { name: "Fayetteville, USA", lat: 35.0527, lng: -78.8784, tz: "America/New_York" },
   { name: "Flint, USA", lat: 43.0125, lng: -83.6875, tz: "America/Detroit" },
@@ -502,7 +502,7 @@ const cityDatabase = [
   { name: "Seattle, USA", lat: 47.6062, lng: -122.3321, tz: "America/Los_Angeles" },
   { name: "Shreveport, USA", lat: 32.5113, lng: -93.7502, tz: "America/Chicago" },
   { name: "Simi Valley, USA", lat: 34.2694, lng: -118.7815, tz: "America/Los_Angeles" },
-  { name: "Solon, Ohio, USA", lat: 41.3898, lng: -81.4415, tz: "America/New_York" },
+  { name: "Solon, OH, USA", lat: 41.3898, lng: -81.4415, tz: "America/New_York" },
   { name: "Spokane, USA", lat: 47.6588, lng: -117.4260, tz: "America/Los_Angeles" },
   { name: "Springfield, IL, USA", lat: 39.7817, lng: -89.6501, tz: "America/Chicago" }, // IL
   { name: "Springfield, MO, USA", lat: 37.2089, lng: -93.2923, tz: "America/Chicago" }, // MO
