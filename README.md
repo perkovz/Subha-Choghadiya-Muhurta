@@ -34,3 +34,39 @@ By choosing favorable windows, you align effort with the day's natural rhythm—
 Simple. Precise. Respectful of your privacy.
 
 Enjoy clearer, more intentional days!
+
+## Three-day navigation (v1.1)
+
+- Open the popup on **Today**, in the selected city's timezone. **Prev** and
+  **Next** navigate only yesterday, today and tomorrow; **Today** returns to today
+  without resetting your saved city. The outer navigation buttons disable at
+  yesterday/tomorrow.
+- Before sunrise, choose **Prev** to see the active period in yesterday's night.
+  Nights end at the following calendar day's actual sunrise, including DST changes.
+- The selected date and live city-local time appear above the results. City search
+  resets to Today. While the popup stays open, the clock/highlight and relative
+  dates refresh every 30 seconds and when the popup becomes visible again. At
+  midnight the selected relative day (Yesterday/Today/Tomorrow) is retained.
+- City and date changes share the same short results transition, with reduced-motion
+  support. Failed/unavailable solar data shows an error instead of guessed times;
+  select a day again (or press Today) to retry.
+- Sun data: [Sunrise-Sunset.org v1 API](https://sunrise-sunset.org/api-v1).
+  The manifest host permission now matches the `.org` API actually used by the code
+  (previously it named the unused `.io` domain). Store updates may ask existing users
+  to approve the changed site access.
+
+### Tests
+
+No build step or dependencies are required. With Node.js 18 or newer:
+
+```sh
+node --check popup.js
+node --test tests/popup.test.cjs
+TZ=Pacific/Honolulu node --test tests/popup.test.cjs
+TZ=Asia/Tokyo node --test tests/popup.test.cjs
+```
+
+The tests execute the popup logic with small DOM, storage, network and clock doubles.
+They cover date bounds, local/host timezone differences, DST, pre-sunrise highlighting,
+actual next sunrise, city/date request races, midnight rollover, errors and animation
+preferences. Load the unpacked extension in Chrome/Edge for a final visual check.
