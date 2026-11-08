@@ -11,10 +11,16 @@
       <input type="text" id="city-search" placeholder="Search city..." autocomplete="off">
       <div id="search-results" class="search-results"></div>
     </div>
-    <button id="reload-location" class="reload-btn">Reload</button>
+    <nav class="date-navigation" aria-label="Calculation day">
+      <button id="prev-day" class="date-btn" type="button" aria-label="Previous day">Prev</button>
+      <button id="today" class="date-btn" type="button" aria-pressed="true">Today</button>
+      <button id="next-day" class="date-btn" type="button" aria-label="Next day">Next</button>
+    </nav>
   </div>
 
   <div id="content" class="loading">Loading your location…</div>
+
+  <footer class="data-source">Sun data by <a href="https://sunrise-sunset.org/" target="_blank" rel="noopener noreferrer">Sunrise-Sunset.org</a></footer>
 
   <script src="popup.js"></script>
 </body>
